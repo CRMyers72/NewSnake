@@ -5,7 +5,7 @@ startButton.innerHTML = "Start Game!";
 let snakeToolbar = document.getElementById("snakeToolbar");
 snakeToolbar.appendChild(startButton)[0];
 
-const snake = [
+let snake = [
   { x: 10, y: 5 },
   { x: 11, y: 5 },
 ];
@@ -19,7 +19,17 @@ let snakeDifficulty = 3;
 let scoreDisplay = document.createElement("div");
 scoreDisplay.id = "scoreDisplay";
 let score = 0;
-scoreDisplay.innerHTML = score;
+scoreDisplay.innerHTML = "Current Score: " + score;
+
+let previousScore = 0;
+let previousScoreDisplay = document.createElement("div");
+previousScoreDisplay.id = "scoreDisplay";
+previousScoreDisplay.innerHTML = "Last Score: " + previousScore;
+
+let highScore = 0;
+let highScoreDisplay = document.createElement("div");
+highScoreDisplay.id = "scoreDisplay";
+highScoreDisplay.innerHTML = "Highscore: " + highScore;
 
 let userDirection = { x: 0, y: 0 };
 let lastDirection = { x: 0, y: 0 };
@@ -30,6 +40,8 @@ let randomYCoord = createRandomY();
 let appleGridPoint = [{ x: createRandomX(), y: createRandomY() }];
 
 growthAmount = 1;
+
+let renderLoop = null;
 //Functions for different grid data
 //Function to limit game to grid borders
 function checkBoundry(gameBoard) {
@@ -87,20 +99,30 @@ function updateState() {
   //adds a tail to the snake after the snake eats
   addSnakeSegment();
   //movement
+  // console.log(userDirection);
+  // console.log(snake[0]);
+
   moveSnake();
   updateApple();
   if (checkBoundry(gameBoard)) {
     gameOver();
   }
-  if (checkBite(gameBoard)) {
-    gameOver();
+  if (userDirection.x !== 0 || userDirection.y !== 0) {
+    if (checkBite(gameBoard)) {
+      gameOver();
+    }
   }
 }
+let scoreUpdate = () => {
+  score = snake.length - 1;
+  scoreDisplay.innerHTML = "Current Score: " + score;
+};
+
 function updateApple() {
   if (snakeEats(appleGridPoint[0])) {
     //expand snake function
     snakeGrows(growthAmount);
-    score += 1;
+    scoreUpdate();
     appleGridPoint = [{ x: createRandomX(), y: createRandomY() }];
   }
 }
@@ -110,12 +132,17 @@ function snakeGrows(number) {
   return (newSnakeSegment += number);
 }
 function gameOver() {
+  clearInterval(renderLoop);
   userDirection = { x: 0, y: 0 };
-  let previousScore = score;
-  let previousScoreDisplay = document.createElement("h2");
-  previousScoreDisplay.classList.add("anouncement");
-  previousScore.innerHTML = previousScore;
-  snakeToolbar.appendChild(previousScoreDisplay)[2];
+  scoreKeeper();
+  let restartButton = window.confirm(
+    "Game over! Your score was " + score + " Press OK to play again!"
+  );
+  if (restartButton) {
+    restartGame();
+  } else {
+    window.alert("GoodBye!");
+  }
 }
 function addSnakeSegment() {
   for (let i = 0; i < newSnakeSegment; i++) {
@@ -165,6 +192,7 @@ function snakeEats(position) {
 }
 function checkBite() {
   for (let i = 1; i < snake.length; i++) {
+    // console.log("this runs");
     if (snake[i].x == snake[0].x && snake[i].y == snake[0].y) {
       gameOver();
     }
@@ -185,15 +213,44 @@ function tick() {
 
 function startGame() {
   startButton.remove();
+  // snakeToolbar.appendChild(scoreTag)[0];
   snakeToolbar.appendChild(scoreDisplay)[0];
+  snakeToolbar.appendChild(previousScoreDisplay)[1];
+  snakeToolbar.appendChild(highScoreDisplay)[2];
 
-  setInterval(tick, 1000 / 5);
+  renderLoop = setInterval(() => tick(), 1000 / 5);
 }
 startButton.onclick = startGame;
 //I was trying to get a good restart function to work but ran out of time. Leaving this in to work on later.
-// function restartGame() {
-//   document.location.reload();
-//   // if (confirm("Game over! Your Score was! Press ok to restart")) {
-//   //   document.location.reload()
-//   // }
-// }
+function scoreKeeper() {
+  previousScore = score;
+  previousScoreDisplay.innerHTML = "Last Score: " + previousScore;
+  if (score > highScore) {
+    highScore = score;
+    highScoreDisplay.innerHTML = "Highscore: " + highScore;
+  }
+}
+
+function resetSnake() {
+  snake = [
+    { x: 10, y: 5 },
+    { x: 11, y: 5 },
+  ];
+  newSnakeSegment = 0;
+  userDirection = { x: 0, y: 0 };
+  score = 0;
+  scoreDisplay.innerHTML = "Current Score: " + score;
+  renderSnake();
+}
+
+function restartGame() {
+  snake.forEach((bodyPiece) => {
+    const snakeSegment = document.querySelectorAll(".snake");
+    for (let i = 0; i < snakeSegment.length; i++) {
+      gameBoard.removeChild(snakeSegment[i]);
+    }
+  });
+
+  resetSnake();
+  renderLoop = setInterval(() => tick(), 1000 / 5);
+}
